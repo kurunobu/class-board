@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>学級連絡ダッシュボード | 自動日付・無期限版</title>
+    <title>学級連絡ダッシュボード | 最終確定版</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-/* 1. デザイン設定 (1280x720 固定) */
+/* 1. 基本設定（1280x720固定） */
 :root {
   --sky-gradient: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
   --ocean-blue: #0284c7;
@@ -40,17 +40,17 @@ body {
 }
 
 /* 背景装飾 */
-.bg-dots {
+.bg-overlay {
   position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  background-image: radial-gradient(circle at 2px 2px, rgba(2, 132, 199, 0.08) 1.5px, transparent 0);
+  background-image: radial-gradient(circle at 2px 2px, rgba(2, 132, 199, 0.06) 1.5px, transparent 0);
   background-size: 35px 35px;
   z-index: 0;
 }
 
-/* 3. コンテンツエリア */
+/* 2. コンテンツエリア */
 .dashboard-main {
   position: relative; z-index: 1;
-  display: grid; grid-template-columns: 1fr 1fr;
+  display: grid; grid-template-columns: 560px 1fr;
   gap: 30px; padding: 30px 40px 10px 40px;
   flex: 1; overflow: hidden;
 }
@@ -76,27 +76,42 @@ body {
   display: flex; align-items: center; gap: 10px;
 }
 
-/* copyボタン（編集モード中のみ） */
-.btn-copy {
-  display: none; background: #f1f5f9; color: var(--ocean-blue);
-  border: 2px solid var(--ocean-blue); padding: 5px 15px;
-  border-radius: 50px; font-weight: 700; cursor: pointer;
-  font-family: 'Poppins', sans-serif; font-size: 14px;
-  transition: all 0.2s;
-}
-.editing .btn-copy { display: block; }
-.btn-copy:hover { background: var(--ocean-blue); color: white; }
-.btn-copy.success { background: #10b981; color: white; border-color: #10b981; }
-
-/* 4. 時計と日付 */
+/* 3. 時計（数字が動かないガタつき防止設定） */
 .date-display { font-size: 44px; font-weight: 700; color: var(--slate-dark); text-align: center; margin-bottom: 5px; }
 
 .clock-display {
   font-family: 'Poppins', sans-serif;
   font-size: 135px; font-weight: 700; color: var(--ocean-blue);
   line-height: 0.85; text-align: center; margin: 0; letter-spacing: -3px;
+  font-variant-numeric: tabular-nums; /* 数字の横幅を均一化 */
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
 }
-.clock-display span { font-size: 55px; color: #94a3b8; margin-left: 8px; font-weight: 400; }
+
+.clock-display .time-main {
+  display: inline-block;
+  text-align: right;
+}
+
+.clock-display span.seconds {
+  font-size: 55px; color: #94a3b8; font-weight: 400;
+  margin-left: 15px;
+  display: inline-block;
+  width: 80px; /* 秒数表示の領域を完全に固定 */
+  text-align: left;
+}
+
+/* 4. コピーボタン（常時表示） */
+.btn-copy {
+  background: #f1f5f9; color: var(--ocean-blue);
+  border: 2px solid var(--ocean-blue); padding: 5px 18px;
+  border-radius: 50px; font-weight: 700; cursor: pointer;
+  font-family: 'Poppins', sans-serif; font-size: 14px;
+  transition: all 0.2s;
+}
+.btn-copy:hover { background: var(--ocean-blue); color: white; }
+.btn-copy.success { background: #10b981; color: white; border-color: #10b981; }
 
 /* 5. 編集エリア */
 .editable {
@@ -111,7 +126,7 @@ body {
   user-select: text;
 }
 
-/* 6. フッターバー (最下部) */
+/* 6. フッター操作バー */
 .footer-bar {
   position: relative; z-index: 10; height: 100px;
   background: var(--footer-bg); backdrop-filter: blur(15px);
@@ -141,7 +156,6 @@ button {
 .btn-edit { background: #f59e0b; color: white; }
 .btn-save { background: #10b981; color: white; display: none; }
 
-/* 制限を撤廃したカレンダー入力 */
 input[type="date"] {
   border: none; background: transparent; font-family: inherit;
   font-size: 18px; color: var(--ocean-blue); font-weight: 700; outline: none;
@@ -157,19 +171,21 @@ li strong { color: var(--ocean-blue); }
 <body>
 
 <div class="slide-container" id="main-ui">
-    <div class="bg-dots"></div>
+    <div class="bg-overlay"></div>
     
     <div class="dashboard-main">
         <div class="col-left">
             <div class="card" style="padding: 20px;">
                 <div class="date-display" id="date-text">----年--月--日 (-)</div>
-                <div class="clock-display" id="clock">00:00<span>00</span></div>
+                <div class="clock-display" id="clock">
+                    <div class="time-main">00:00</div><span class="seconds">00</span>
+                </div>
             </div>
 
             <div class="card" style="flex: 1; justify-content: flex-start;">
                 <div class="card-header">
                     <h2 class="card-title"><i class="fa-solid fa-clipboard-check"></i>提出物・締め切り</h2>
-                    <button class="btn-copy" onclick="copyFromPrevious(event, 'dead')">copy from prev</button>
+                    <button class="btn-copy" onclick="copyFromPrevious(event, 'dead')"><i class="fa-solid fa-copy"></i> copy</button>
                 </div>
                 <div id="e-deadline" class="editable" contenteditable="false">
                     <ul><li>（編集ボタンを押して入力）</li></ul>
@@ -181,7 +197,7 @@ li strong { color: var(--ocean-blue); }
             <div class="card" style="height: 100%; justify-content: flex-start;">
                 <div class="card-header">
                     <h2 class="card-title"><i class="fa-solid fa-calendar-day"></i>今日の予定</h2>
-                    <button class="btn-copy" onclick="copyFromPrevious(event, 'plan')">copy from prev</button>
+                    <button class="btn-copy" onclick="copyFromPrevious(event, 'plan')"><i class="fa-solid fa-copy"></i> copy</button>
                 </div>
                 <div id="e-plan" class="editable" contenteditable="false">
                     <ul><li>（ここに1日の予定を入力）</li></ul>
@@ -223,8 +239,14 @@ li strong { color: var(--ocean-blue); }
     // 時計更新
     function updateClock() {
         const now = new Date();
-        const el = document.getElementById('clock');
-        if(el) el.innerHTML = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}<span>${String(now.getSeconds()).padStart(2, '0')}</span>`;
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        const s = String(now.getSeconds()).padStart(2, '0');
+        
+        const clockEl = document.getElementById('clock');
+        if(clockEl) {
+            clockEl.innerHTML = `<div class="time-main">${h}:${m}</div><span class="seconds">${s}</span>`;
+        }
     }
     setInterval(updateClock, 1000);
     updateClock();
@@ -252,7 +274,6 @@ li strong { color: var(--ocean-blue); }
         }
     }
 
-    // 制限撤廃：何年でも移動可能に
     function moveDate(n) {
         if(isEditing) return;
         activeDate.setDate(activeDate.getDate() + n);
@@ -297,25 +318,36 @@ li strong { color: var(--ocean-blue); }
         setTimeout(() => { sb.innerHTML = '<i class="fa-solid fa-check"></i> 完了して保存'; toggleEdit(); }, 600);
     }
 
-    // 前日コピー機能
     function copyFromPrevious(event, type) {
         const prev = new Date(activeDate);
         prev.setDate(activeDate.getDate() - 1);
         const prevKey = getDateKey(prev);
+        const currentKey = getDateKey(activeDate);
         
-        const btn = event.target;
+        let btn = event.target;
+        while (btn.tagName !== 'BUTTON') { btn = btn.parentElement; }
 
         if (MASTER_DATA[prevKey] && MASTER_DATA[prevKey][type]) {
             const target = document.getElementById(type === 'dead' ? 'e-deadline' : 'e-plan');
             target.innerHTML = MASTER_DATA[prevKey][type];
             
-            // 成功アニメーション
-            const originalText = btn.innerHTML;
+            if (!isEditing) {
+                if (!MASTER_DATA[currentKey]) {
+                    MASTER_DATA[currentKey] = { 
+                        dead: document.getElementById('e-deadline').innerHTML, 
+                        plan: document.getElementById('e-plan').innerHTML 
+                    };
+                }
+                MASTER_DATA[currentKey][type] = MASTER_DATA[prevKey][type];
+                try { localStorage.setItem(STORAGE_KEY, JSON.stringify(MASTER_DATA)); } catch(e){}
+            }
+            
+            const originalHTML = btn.innerHTML;
             btn.classList.add('success');
-            btn.innerHTML = 'Copied!';
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
             setTimeout(() => {
                 btn.classList.remove('success');
-                btn.innerHTML = originalText;
+                btn.innerHTML = originalHTML;
             }, 1000);
         } else {
             alert("前日のデータがありません。");
@@ -323,7 +355,8 @@ li strong { color: var(--ocean-blue); }
     }
 
     function exportData() {
-        const blob = new Blob([JSON.stringify(MASTER_DATA, null, 2)], { type: 'application/json' });
+        const json = JSON.stringify(MASTER_DATA, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = `学級データ_${getDateKey(new Date())}.json`;
@@ -340,7 +373,7 @@ li strong { color: var(--ocean-blue); }
                 render();
                 alert("データを読み込みました。");
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(MASTER_DATA));
-            } catch(err) { alert("正しいファイル形式ではありません。"); }
+            } catch(err) { alert("形式エラー"); }
         };
         reader.readAsText(file);
         event.target.value = ''; 
@@ -351,10 +384,9 @@ li strong { color: var(--ocean-blue); }
         if (!isNaN(d)) { activeDate = d; render(); }
     });
 
-    // 起動時は無条件で「今日」を表示
     window.onload = () => {
         try { const cached = localStorage.getItem(STORAGE_KEY); if(cached) MASTER_DATA = JSON.parse(cached); } catch(e){}
-        activeDate = new Date(); // 常に現在の日付を取得
+        activeDate = new Date(); 
         render();
     };
 </script>
