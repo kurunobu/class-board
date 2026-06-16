@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>学級連絡ダッシュボード 2026-2027 | 確定版v12</title>
+    <title>学級連絡ダッシュボード | 自動日付・無期限版</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
@@ -76,6 +76,18 @@ body {
   display: flex; align-items: center; gap: 10px;
 }
 
+/* copyボタン（編集モード中のみ） */
+.btn-copy {
+  display: none; background: #f1f5f9; color: var(--ocean-blue);
+  border: 2px solid var(--ocean-blue); padding: 5px 15px;
+  border-radius: 50px; font-weight: 700; cursor: pointer;
+  font-family: 'Poppins', sans-serif; font-size: 14px;
+  transition: all 0.2s;
+}
+.editing .btn-copy { display: block; }
+.btn-copy:hover { background: var(--ocean-blue); color: white; }
+.btn-copy.success { background: #10b981; color: white; border-color: #10b981; }
+
 /* 4. 時計と日付 */
 .date-display { font-size: 44px; font-weight: 700; color: var(--slate-dark); text-align: center; margin-bottom: 5px; }
 
@@ -98,16 +110,6 @@ body {
   border: 2.5px dashed var(--ocean-blue);
   user-select: text;
 }
-
-/* copyボタン（編集モード中のみ） */
-.btn-copy {
-  display: none; background: #f1f5f9; color: var(--ocean-blue);
-  border: 2px solid var(--ocean-blue); padding: 5px 15px;
-  border-radius: 50px; font-weight: 700; cursor: pointer;
-  font-family: 'Poppins', sans-serif; font-size: 14px;
-}
-.editing .btn-copy { display: block; }
-.btn-copy:hover { background: var(--ocean-blue); color: white; }
 
 /* 6. フッターバー (最下部) */
 .footer-bar {
@@ -139,6 +141,7 @@ button {
 .btn-edit { background: #f59e0b; color: white; }
 .btn-save { background: #10b981; color: white; display: none; }
 
+/* 制限を撤廃したカレンダー入力 */
 input[type="date"] {
   border: none; background: transparent; font-family: inherit;
   font-size: 18px; color: var(--ocean-blue); font-weight: 700; outline: none;
@@ -166,7 +169,7 @@ li strong { color: var(--ocean-blue); }
             <div class="card" style="flex: 1; justify-content: flex-start;">
                 <div class="card-header">
                     <h2 class="card-title"><i class="fa-solid fa-clipboard-check"></i>提出物・締め切り</h2>
-                    <button class="btn-copy" onclick="copyFromPrevious('dead')">copy from prev</button>
+                    <button class="btn-copy" onclick="copyFromPrevious(event, 'dead')">copy from prev</button>
                 </div>
                 <div id="e-deadline" class="editable" contenteditable="false">
                     <ul><li>（編集ボタンを押して入力）</li></ul>
@@ -178,7 +181,7 @@ li strong { color: var(--ocean-blue); }
             <div class="card" style="height: 100%; justify-content: flex-start;">
                 <div class="card-header">
                     <h2 class="card-title"><i class="fa-solid fa-calendar-day"></i>今日の予定</h2>
-                    <button class="btn-copy" onclick="copyFromPrevious('plan')">copy from prev</button>
+                    <button class="btn-copy" onclick="copyFromPrevious(event, 'plan')">copy from prev</button>
                 </div>
                 <div id="e-plan" class="editable" contenteditable="false">
                     <ul><li>（ここに1日の予定を入力）</li></ul>
@@ -196,7 +199,7 @@ li strong { color: var(--ocean-blue); }
 
         <div class="f-group center">
             <div class="pill">
-                <input type="date" id="date-picker" min="2026-04-01" max="2027-03-31">
+                <input type="date" id="date-picker">
             </div>
             <div class="pill" style="padding: 2px 10px;">
                 <button class="btn-nav" onclick="moveDate(-1)">◀</button>
@@ -212,175 +215,135 @@ li strong { color: var(--ocean-blue); }
 </div>
 
 <script>
-    // --- 内部データ管理 ---
-    const STORAGE_KEY = 'classroom_v12_final';
+    const STORAGE_KEY = 'classroom_unlimited_final';
     let MASTER_DATA = {}; 
     let activeDate = new Date();
-    const endLimit = new Date('2027-03-31');
-    const startLimit = new Date('2026-04-01');
     let isEditing = false;
 
-    // 時計の更新
+    // 時計更新
     function updateClock() {
-        try {
-            const now = new Date();
-            const h = String(now.getHours()).padStart(2, '0');
-            const m = String(now.getMinutes()).padStart(2, '0');
-            const s = String(now.getSeconds()).padStart(2, '0');
-            const el = document.getElementById('clock');
-            if(el) el.innerHTML = `${h}:${m}<span>${s}</span>`;
-        } catch(e) {}
+        const now = new Date();
+        const el = document.getElementById('clock');
+        if(el) el.innerHTML = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}<span>${String(now.getSeconds()).padStart(2, '0')}</span>`;
     }
     setInterval(updateClock, 1000);
     updateClock();
 
     function getDateKey(date) {
-        const y = date.getFullYear();
-        const m = String(date.getMonth() + 1).padStart(2, '0');
-        const d = String(date.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
+        return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
     }
 
-    // 画面の描画
     function render() {
-        const dayNames = ['日','月','火','水','木','金','土'];
-        document.getElementById('date-text').innerText = `${activeDate.getFullYear()}年${activeDate.getMonth()+1}月${activeDate.getDate()}日 (${dayNames[activeDate.getDay()]})`;
+        const days = ['日','月','火','水','木','金','土'];
+        document.getElementById('date-text').innerText = `${activeDate.getFullYear()}年${activeDate.getMonth()+1}月${activeDate.getDate()}日 (${days[activeDate.getDay()]})`;
         
         const key = getDateKey(activeDate);
         document.getElementById('date-picker').value = key;
         
-        const d_area = document.getElementById('e-deadline');
-        const p_area_real = document.getElementById('e-plan'); 
+        const dead = document.getElementById('e-deadline');
+        const plan = document.getElementById('e-plan');
         
         if (MASTER_DATA[key]) {
-            d_area.innerHTML = MASTER_DATA[key].dead || '<ul><li>-</li></ul>';
-            if(p_area_real) p_area_real.innerHTML = MASTER_DATA[key].plan || '<ul><li>-</li></ul>';
+            dead.innerHTML = MASTER_DATA[key].dead || '<ul><li>-</li></ul>';
+            plan.innerHTML = MASTER_DATA[key].plan || '<ul><li>-</li></ul>';
         } else {
-            d_area.innerHTML = '<ul><li>（提出物を入力）</li></ul>';
-            if(p_area_real) p_area_real.innerHTML = '<ul><li>（予定を入力）</li></ul>';
+            dead.innerHTML = '<ul><li>（提出物を入力）</li></ul>';
+            plan.innerHTML = '<ul><li>（予定を入力）</li></ul>';
         }
     }
 
+    // 制限撤廃：何年でも移動可能に
     function moveDate(n) {
-        if(isEditing) return; // 編集中は移動させない
-        const d = new Date(activeDate);
-        d.setDate(activeDate.getDate() + n);
-        if (d >= startLimit && d <= endLimit) {
-            activeDate = d;
-            render();
-        }
+        if(isEditing) return;
+        activeDate.setDate(activeDate.getDate() + n);
+        render();
     }
 
-    // 編集モード切り替え
     function toggleEdit() {
         isEditing = !isEditing;
         const ui = document.getElementById('main-ui');
         const eb = document.getElementById('edit-btn');
         const sb = document.getElementById('save-btn');
-        const d_area = document.getElementById('e-deadline');
-        const p_area = document.getElementById('e-plan');
+        const dead = document.getElementById('e-deadline');
+        const plan = document.getElementById('e-plan');
 
         if (isEditing) {
             ui.classList.add('editing');
             eb.innerHTML = '<i class="fa-solid fa-xmark"></i> キャンセル';
             eb.style.background = "#64748b";
             sb.style.display = 'flex';
-            d_area.setAttribute('contenteditable', 'true');
-            p_area.setAttribute('contenteditable', 'true');
+            dead.setAttribute('contenteditable', 'true');
+            plan.setAttribute('contenteditable', 'true');
         } else {
-            finishEditing();
+            ui.classList.remove('editing');
+            eb.innerHTML = '<i class="fa-solid fa-pen"></i> 編集モード';
+            eb.style.background = "#f59e0b";
+            sb.style.display = 'none';
+            dead.setAttribute('contenteditable', 'false');
+            plan.setAttribute('contenteditable', 'false');
+            render();
         }
     }
 
-    // 編集終了の共通処理
-    function finishEditing() {
-        isEditing = false;
-        const ui = document.getElementById('main-ui');
-        const eb = document.getElementById('edit-btn');
-        const sb = document.getElementById('save-btn');
-        const d_area = document.getElementById('e-deadline');
-        const p_area = document.getElementById('e-plan');
-
-        ui.classList.remove('editing');
-        eb.innerHTML = '<i class="fa-solid fa-pen"></i> 編集モード';
-        eb.style.background = "#f59e0b";
-        sb.style.display = 'none';
-        d_area.setAttribute('contenteditable', 'false');
-        p_area.setAttribute('contenteditable', 'false');
-        render();
-    }
-
-    // 保存処理
     function saveToMemory() {
         const key = getDateKey(activeDate);
-        const d_content = document.getElementById('e-deadline').innerHTML;
-        const p_content = document.getElementById('e-plan').innerHTML;
-
-        // メモリ更新
-        MASTER_DATA[key] = { dead: d_content, plan: p_content };
-
-        // ブラウザ保存
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(MASTER_DATA));
-        } catch(e) { console.error("Save failed", e); }
-        
+        MASTER_DATA[key] = {
+            dead: document.getElementById('e-deadline').innerHTML,
+            plan: document.getElementById('e-plan').innerHTML
+        };
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(MASTER_DATA)); } catch(e){}
         const sb = document.getElementById('save-btn');
-        sb.innerHTML = '<i class="fa-solid fa-check-double"></i> 保存しました！';
-        
-        setTimeout(() => {
-            sb.innerHTML = '<i class="fa-solid fa-check"></i> 完了して保存';
-            finishEditing();
-        }, 600);
+        sb.innerHTML = '<i class="fa-solid fa-circle-check"></i> 保存OK';
+        setTimeout(() => { sb.innerHTML = '<i class="fa-solid fa-check"></i> 完了して保存'; toggleEdit(); }, 600);
     }
 
-    // コピー機能
-    function copyFromPrevious(type) {
+    // 前日コピー機能
+    function copyFromPrevious(event, type) {
         const prev = new Date(activeDate);
         prev.setDate(activeDate.getDate() - 1);
         const prevKey = getDateKey(prev);
+        
+        const btn = event.target;
 
         if (MASTER_DATA[prevKey] && MASTER_DATA[prevKey][type]) {
             const target = document.getElementById(type === 'dead' ? 'e-deadline' : 'e-plan');
             target.innerHTML = MASTER_DATA[prevKey][type];
+            
+            // 成功アニメーション
+            const originalText = btn.innerHTML;
+            btn.classList.add('success');
+            btn.innerHTML = 'Copied!';
+            setTimeout(() => {
+                btn.classList.remove('success');
+                btn.innerHTML = originalText;
+            }, 1000);
         } else {
             alert("前日のデータがありません。");
         }
     }
 
-    // ファイル書き出し
     function exportData() {
-        const dataStr = JSON.stringify(MASTER_DATA, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
+        const blob = new Blob([JSON.stringify(MASTER_DATA, null, 2)], { type: 'application/json' });
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `掲示板データ_${getDateKey(new Date())}.json`;
+        a.href = URL.createObjectURL(blob);
+        a.download = `学級データ_${getDateKey(new Date())}.json`;
         a.click();
     }
 
-    // ファイル読み込み (強化版)
     function importData(event) {
         const file = event.target.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
-                const imported = JSON.parse(e.target.result);
-                if (typeof imported === 'object' && imported !== null) {
-                    MASTER_DATA = imported;
-                    render();
-                    alert("データを復元しました。");
-                    // 読み込んだデータをブラウザにも覚えさせる
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(MASTER_DATA));
-                } else {
-                    throw new Error("Invalid Format");
-                }
-            } catch (err) {
-                alert("エラー：ファイルが正しくないか、データが壊れています。以前保存した .json ファイルを選択してください。");
-            }
+                MASTER_DATA = JSON.parse(e.target.result);
+                render();
+                alert("データを読み込みました。");
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(MASTER_DATA));
+            } catch(err) { alert("正しいファイル形式ではありません。"); }
         };
         reader.readAsText(file);
-        event.target.value = ''; // 連続読み込み対応
+        event.target.value = ''; 
     }
 
     document.getElementById('date-picker').addEventListener('change', (e) => {
@@ -388,14 +351,10 @@ li strong { color: var(--ocean-blue); }
         if (!isNaN(d)) { activeDate = d; render(); }
     });
 
+    // 起動時は無条件で「今日」を表示
     window.onload = () => {
-        // キャッシュ読み込み
-        try {
-            const cached = localStorage.getItem(STORAGE_KEY);
-            if(cached) MASTER_DATA = JSON.parse(cached);
-        } catch(e){}
-        const today = new Date();
-        activeDate = (today >= startLimit && today <= endLimit) ? today : startLimit;
+        try { const cached = localStorage.getItem(STORAGE_KEY); if(cached) MASTER_DATA = JSON.parse(cached); } catch(e){}
+        activeDate = new Date(); // 常に現在の日付を取得
         render();
     };
 </script>
