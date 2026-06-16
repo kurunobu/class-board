@@ -250,17 +250,14 @@ li strong { color: var(--ocean-blue); }
         document.getElementById('date-picker').value = key;
         
         const d_area = document.getElementById('e-deadline');
-        const p_area = document.getElementById('edit-plan'); // 修正：右側のIDと一致
-        const p_area_real = document.getElementById('e-plan'); // 二重チェック用
+        const p_area_real = document.getElementById('e-plan'); 
         
-        const target_p = p_area || p_area_real;
-
         if (MASTER_DATA[key]) {
             d_area.innerHTML = MASTER_DATA[key].dead || '<ul><li>-</li></ul>';
-            if(target_p) target_p.innerHTML = MASTER_DATA[key].plan || '<ul><li>-</li></ul>';
+            if(p_area_real) p_area_real.innerHTML = MASTER_DATA[key].plan || '<ul><li>-</li></ul>';
         } else {
             d_area.innerHTML = '<ul><li>（提出物を入力）</li></ul>';
-            if(target_p) target_p.innerHTML = '<ul><li>（予定を入力）</li></ul>';
+            if(p_area_real) p_area_real.innerHTML = '<ul><li>（予定を入力）</li></ul>';
         }
     }
 
